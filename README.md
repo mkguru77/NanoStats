@@ -29,6 +29,11 @@
 - macOS 11.0 (Big Sur) or later
 - Xcode Command Line Tools (`xcode-select --install`)
 - Apple Silicon (arm64)
+- Since the app is not notarized with Apple Developer account, you need to run this command to remove the quarantine attribute before opening it and moving NanoStats.app to Applications folder.
+
+```sh
+xattr -d com.apple.quarantine ~/Downloads/NanoStats.dmg
+```
 
 ## Project Structure
 
