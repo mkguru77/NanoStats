@@ -1,0 +1,28 @@
+# macOS App & Build Artifacts
+/*.app
+/NanoStats.app
+/NanoStats
+/NetSpeed.app
+/NetSpeed
+.build/
+.swiftpm/
+
+# User & IDE Settings
+.DS_Store
+.vscode/
+xcuserdata/
+
+# Xcode & Swift Package Manager
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcodeproj/
+timeline.xctimeline
+playground.xcworkspace
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
