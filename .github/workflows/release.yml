@@ -1,0 +1,39 @@
+name: Automate Releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Make build script executable
+        run: chmod +x build_app.sh
+
+      - name: Build macOS App
+        run: ./build_app.sh
+
+      - name: Create DMG Disk Image
+        run: |
+          hdiutil create -volname "NanoStats" -srcfolder NanoStats.app -ov -format UDZO NanoStats.dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: NanoStats.dmg
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
