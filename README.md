@@ -5,7 +5,11 @@
 <h1 align="center">NanoStats</h1>
 
 <p align="center">
-A lightweight, zero-dependency native macOS menu bar monitor for Network Speed, CPU, GPU, RAM, and Temperature — built entirely in pure Swift.
+  A lightweight, zero-dependency native macOS menu bar monitor for Network Speed, CPU, GPU, RAM, and Temperature — built entirely in pure Swift.
+</p>
+
+<p align="center">
+  <img src="assets/ss-1.png" alt="NanoStats Screenshot" width="500">
 </p>
 
 ## Features
@@ -26,30 +30,19 @@ A lightweight, zero-dependency native macOS menu bar monitor for Network Speed, 
 - Xcode Command Line Tools (`xcode-select --install`)
 - Apple Silicon (arm64)
 
-## Build & Run
-
-```bash
-git clone https://github.com/mkguru77/mac-netspeed.git
-cd mac-netspeed
-chmod +x build_app.sh
-./build_app.sh
-mv NanoStats.app /Applications
-open NanoStats.app
-```
-
 ## Project Structure
 
 ```
 Sources/NanoStats/
-├── main.swift              # App entry point
-├── StatusBarController.swift  # Menu bar hub, preferences, menu setup
-├── NetworkMonitor.swift    # Network I/O via getifaddrs / if_data
-├── SystemMonitor.swift     # CPU, GPU, RAM, Thermal via host_statistics64 / IOKit
-├── MetricComponent.swift   # MetricType enum with display names
-├── IconProvider.swift      # Dynamic multi-metric image renderer
-├── ReorderPanel.swift      # Drag-and-drop metric reorder panel
-├── SpeedFormatter.swift    # Byte-rate formatting utilities
-└── LaunchAtLogin.swift     # SMAppService wrapper
+├── main.swift                  # App entry point
+├── StatusBarController.swift   # Menu bar hub, preferences, menu setup
+├── NetworkMonitor.swift        # Network I/O via getifaddrs / if_data
+├── SystemMonitor.swift         # CPU, GPU, RAM, Thermal via host_statistics64 / IOKit
+├── MetricComponent.swift       # MetricType enum with display names
+├── IconProvider.swift          # Dynamic multi-metric image renderer
+├── ReorderPanel.swift          # Drag-and-drop metric reorder panel
+├── SpeedFormatter.swift        # Byte-rate formatting utilities
+└── LaunchAtLogin.swift         # SMAppService wrapper
 ```
 
 ## How It Works
