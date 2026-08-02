@@ -5,7 +5,7 @@
 <h1 align="center">NanoStats</h1>
 
 <p align="center">
-  A lightweight, zero-dependency macOS menu bar monitor for Network Speed, CPU, GPU, RAM, and Temperature
+  A lightweight, zero-dependency macOS menu bar monitor
 </p>
 
 <p align="center">
