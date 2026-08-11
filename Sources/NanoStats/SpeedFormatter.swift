@@ -32,11 +32,11 @@ public class SpeedFormatter {
         if doubleBytes < 1024 {
             return "\(bytes) B"
         } else if doubleBytes < 1024 * 1024 {
-            return String(format: "%.1f KB", doubleBytes / 1024.0)
+            return String(format: "%.0f KB", doubleBytes / 1024.0)
         } else if doubleBytes < 1024 * 1024 * 1024 {
-            return String(format: "%.1f MB", doubleBytes / (1024.0 * 1024.0))
+            return String(format: "%.0f MB", doubleBytes / (1024.0 * 1024.0))
         } else {
-            return String(format: "%.1f GB", doubleBytes / (1024.0 * 1024.0 * 1024.0))
+            return String(format: "%.0f GB", doubleBytes / (1024.0 * 1024.0 * 1024.0))
         }
     }
 }

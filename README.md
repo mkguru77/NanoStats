@@ -35,6 +35,15 @@
 xattr -d com.apple.quarantine ~/Downloads/NanoStats.dmg
 ```
 
+## Building
+
+For detailed instructions on building the macOS app bundle, creating a `.dmg` installer, SPM development, and troubleshooting, see [build.md](file:///Users/guru/Desktop/Github/AI-Coding/NanoStats/build.md).
+
+```bash
+# Quick build command
+./build_app.sh
+```
+
 ## Project Structure
 
 ```

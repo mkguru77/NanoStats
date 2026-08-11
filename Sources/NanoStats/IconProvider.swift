@@ -56,16 +56,16 @@ public class IconProvider {
                 bottomText = "▼ \(downStr)"
             case .cpu:
                 topText = "CPU"
-                bottomText = String(format: "%.1f%%", cpuPercent)
+                bottomText = String(format: "%.0f%%", cpuPercent)
             case .gpu:
                 topText = "GPU"
-                bottomText = String(format: "%.1f%%", gpuPercent)
+                bottomText = String(format: "%.0f%%", gpuPercent)
             case .memory:
                 topText = "RAM"
-                bottomText = String(format: "%.1f%%", memPercent)
+                bottomText = String(format: "%.0f%%", memPercent)
             case .temperature:
                 topText = "TEMP"
-                bottomText = String(format: "%.1f°C", tempCelsius)
+                bottomText = String(format: "%.0f°C", tempCelsius)
             }
             
             let upAttr = NSAttributedString(string: topText, attributes: stackedAttrs)
