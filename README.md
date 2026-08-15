@@ -18,7 +18,7 @@
 - **Drag-and-Drop Reordering** — Customize the order of metrics in the menu bar via a floating panel
 - **Toggle Metrics** — Enable or disable individual metrics with checkboxes
 - **Network Interface Selection** — Auto-detect or manually select a specific network interface
-- **Speed Units** — Choose between adaptive (KB/s, MB/s, GB/s) units
+- **Speed Units** — Choose between fixed KB/s, MB/s, or Mbps units
 - **Configurable Refresh Rate** — 0.5s, 1s, 2s, or 5s polling intervals
 - **Session Totals** — Track cumulative upload/download data since launch
 - **Launch at Login** — Native `SMAppService` integration (macOS 13+)
@@ -29,7 +29,8 @@
 - macOS 11.0 (Big Sur) or later
 - Xcode Command Line Tools (`xcode-select --install`)
 - Apple Silicon (arm64)
-- Since the app is not notarized with Apple Developer account, you need to run this command to remove the quarantine attribute before opening it and moving NanoStats.app to Applications folder.
+- Because the app is not notarized, remove the quarantine attribute
+  before opening it and moving NanoStats.app to Applications:
 
 ```sh
 xattr -d com.apple.quarantine ~/Downloads/NanoStats.dmg
@@ -37,7 +38,9 @@ xattr -d com.apple.quarantine ~/Downloads/NanoStats.dmg
 
 ## Building
 
-For detailed instructions on building the macOS app bundle, creating a `.dmg` installer, SPM development, and troubleshooting, see [build.md](file:///Users/guru/Desktop/Github/AI-Coding/NanoStats/build.md).
+For detailed instructions on building the macOS app bundle, creating a
+`.dmg` installer, SPM development, and troubleshooting, see
+[BUILD.md](BUILD.md).
 
 ```bash
 # Quick build command

@@ -15,7 +15,6 @@ public struct SystemSample {
 public class SystemMonitor {
     private var lastCpuUser: UInt64 = 0
     private var lastCpuSystem: UInt64 = 0
-    private var lastCpuIdle: UInt64 = 0
     private var lastCpuTotal: UInt64 = 0
     private var isFirstCpuSample = true
     
@@ -64,7 +63,6 @@ public class SystemMonitor {
         if isFirstCpuSample {
             lastCpuUser = totalUser
             lastCpuSystem = totalSystem
-            lastCpuIdle = totalIdle
             lastCpuTotal = total
             isFirstCpuSample = false
             return 0.0
@@ -76,7 +74,6 @@ public class SystemMonitor {
         
         lastCpuUser = totalUser
         lastCpuSystem = totalSystem
-        lastCpuIdle = totalIdle
         lastCpuTotal = total
         
         if deltaTotal > 0 {

@@ -8,6 +8,9 @@ public class StatusBarController: NSObject, NSMenuDelegate {
     private let networkMonitor = NetworkMonitor()
     private let systemMonitor = SystemMonitor()
     private var timer: Timer?
+    /// Serial queue for sampling — keeps all monitor state access off the main thread
+    private let sampleQueue = DispatchQueue(label: "com.nanostats.sampling", qos: .utility)
+    private var isSamplePending = false
     
     // MARK: - Preferences (UserDefaults)
     
@@ -42,7 +45,7 @@ public class StatusBarController: NSObject, NSMenuDelegate {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "SelectedInterface")
-            networkMonitor.resetSession()
+            resetNetworkSession()
             updateDisplay()
         }
     }
@@ -203,14 +206,16 @@ public class StatusBarController: NSObject, NSMenuDelegate {
     // MARK: - Menu Delegate & Dynamic Items
     
     public func menuWillOpen(_ menu: NSMenu) {
-        updateInterfaceSubmenu()
+        // Single getifaddrs pass reused for both the IP display and the interface submenu
+        let activeInterfaces = networkMonitor.getActiveInterfaces()
+        updateInterfaceSubmenu(activeInterfaces)
         updateCheckmarks()
         
-        let primaryIp = networkMonitor.getActiveInterfaces().first(where: { $0.ipAddress != nil })?.ipAddress ?? "Offline"
+        let primaryIp = activeInterfaces.first(where: { $0.ipAddress != nil })?.ipAddress ?? "Offline"
         ipAddressItem.title = "IP Address: \(primaryIp)"
     }
     
-    private func updateInterfaceSubmenu() {
+    private func updateInterfaceSubmenu(_ activeInterfaces: [NetworkInterfaceInfo]) {
         guard let interfaceItem = menu.item(withTitle: "Network Interface"),
               let subMenu = interfaceItem.submenu else { return }
         
@@ -223,8 +228,7 @@ public class StatusBarController: NSObject, NSMenuDelegate {
         subMenu.addItem(autoItem)
         subMenu.addItem(NSMenuItem.separator())
         
-        let activeIfs = networkMonitor.getActiveInterfaces()
-        for info in activeIfs {
+        for info in activeInterfaces {
             let title = info.ipAddress != nil ? "\(info.name) (\(info.ipAddress!))" : info.name
             let item = NSMenuItem(title: title, action: #selector(onSelectInterface(_:)), keyEquivalent: "")
             item.target = self
@@ -273,39 +277,56 @@ public class StatusBarController: NSObject, NSMenuDelegate {
         startTimer()
     }
     
+    /// Serializes session resets with the sampling queue to avoid races with poll()
+    private func resetNetworkSession() {
+        sampleQueue.sync {
+            networkMonitor.resetSession()
+        }
+    }
+    
     private func updateDisplay() {
-        let netSample = networkMonitor.poll(selectedInterface: selectedInterface)
-        let sysSample = systemMonitor.poll()
+        // Coalesce: skip if a sample is already queued/running
+        guard !isSamplePending else { return }
+        isSamplePending = true
         
-        let downStr = SpeedFormatter.formatSpeed(netSample.downloadSpeedBytesPerSec, unitMode: unitMode)
-        let upStr = SpeedFormatter.formatSpeed(netSample.uploadSpeedBytesPerSec, unitMode: unitMode)
-        
-        let activeMetrics = activeOrderedMetrics
-        let activeKeys = activeMetrics.map { $0.rawValue }.joined(separator: ",")
-        
-        let renderKey = "\(downStr)_\(upStr)_\(sysSample.cpuPercent)_\(sysSample.gpuPercent)_\(sysSample.memoryPercent)_\(sysSample.temperatureCelsius)_\(activeKeys)"
-        
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, let button = self.statusItem.button else { return }
+        sampleQueue.async { [weak self] in
+            guard let self = self else { return }
             
-            if renderKey != self.lastRenderedKey {
-                self.lastRenderedKey = renderKey
+            let netSample = self.networkMonitor.poll(selectedInterface: self.selectedInterface)
+            let sysSample = self.systemMonitor.poll()
+            
+            let downStr = SpeedFormatter.formatSpeed(netSample.downloadSpeedBytesPerSec, unitMode: self.unitMode)
+            let upStr = SpeedFormatter.formatSpeed(netSample.uploadSpeedBytesPerSec, unitMode: self.unitMode)
+            
+            let activeMetrics = self.activeOrderedMetrics
+            let activeKeys = activeMetrics.map { $0.rawValue }.joined(separator: ",")
+            
+            let renderKey = "\(downStr)_\(upStr)_\(sysSample.cpuPercent)_\(sysSample.gpuPercent)_\(sysSample.memoryPercent)_\(sysSample.temperatureCelsius)_\(activeKeys)"
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.isSamplePending = false
+                guard let button = self.statusItem.button else { return }
                 
-                button.image = IconProvider.renderMetricsImage(
-                    enabledMetrics: activeMetrics,
-                    upStr: upStr,
-                    downStr: downStr,
-                    cpuPercent: sysSample.cpuPercent,
-                    gpuPercent: sysSample.gpuPercent,
-                    memPercent: sysSample.memoryPercent,
-                    tempCelsius: sysSample.temperatureCelsius
-                )
-                button.attributedTitle = NSAttributedString(string: "")
+                if renderKey != self.lastRenderedKey {
+                    self.lastRenderedKey = renderKey
+                    
+                    button.image = IconProvider.renderMetricsImage(
+                        enabledMetrics: activeMetrics,
+                        upStr: upStr,
+                        downStr: downStr,
+                        cpuPercent: sysSample.cpuPercent,
+                        gpuPercent: sysSample.gpuPercent,
+                        memPercent: sysSample.memoryPercent,
+                        tempCelsius: sysSample.temperatureCelsius
+                    )
+                    button.attributedTitle = NSAttributedString(string: "")
+                }
+                
+                self.headerItem.title = "Interface: \(netSample.activeInterfaceName)"
+                self.sessionDownloadItem.title = "Session Downloaded: \(SpeedFormatter.formatDataSize(netSample.sessionDownloadedBytes))"
+                self.sessionUploadItem.title = "Session Uploaded: \(SpeedFormatter.formatDataSize(netSample.sessionUploadedBytes))"
             }
-            
-            self.headerItem.title = "Interface: \(netSample.activeInterfaceName)"
-            self.sessionDownloadItem.title = "Session Downloaded: \(SpeedFormatter.formatDataSize(netSample.sessionDownloadedBytes))"
-            self.sessionUploadItem.title = "Session Uploaded: \(SpeedFormatter.formatDataSize(netSample.sessionUploadedBytes))"
         }
     }
     
@@ -328,7 +349,7 @@ public class StatusBarController: NSObject, NSMenuDelegate {
     }
     
     @objc private func onResetSession() {
-        networkMonitor.resetSession()
+        resetNetworkSession()
         updateDisplay()
     }
     

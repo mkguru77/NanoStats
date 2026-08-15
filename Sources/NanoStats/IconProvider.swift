@@ -55,16 +55,16 @@ public class IconProvider {
                 topText = "▲ \(upStr)"
                 bottomText = "▼ \(downStr)"
             case .cpu:
-                topText = "CPU"
+                topText = metric.shortLabel
                 bottomText = String(format: "%.0f%%", cpuPercent)
             case .gpu:
-                topText = "GPU"
+                topText = metric.shortLabel
                 bottomText = String(format: "%.0f%%", gpuPercent)
             case .memory:
-                topText = "RAM"
+                topText = metric.shortLabel
                 bottomText = String(format: "%.0f%%", memPercent)
             case .temperature:
-                topText = "TEMP"
+                topText = metric.shortLabel
                 bottomText = String(format: "%.0f°C", tempCelsius)
             }
             

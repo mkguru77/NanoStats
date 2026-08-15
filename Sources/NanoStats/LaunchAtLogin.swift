@@ -24,7 +24,7 @@ public class LaunchAtLogin {
                     try SMAppService.mainApp.unregister()
                 }
             } catch {
-                print("[NetSpeed] LaunchAtLogin error: \(error)")
+                print("[NanoStats] LaunchAtLogin error: \(error)")
                 // Open System Settings -> Login Items so user can approve/toggle
                 SMAppService.openSystemSettingsLoginItems()
             }

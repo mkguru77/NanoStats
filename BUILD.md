@@ -22,7 +22,7 @@ xcode-select --install
 
 ## 1. Build Native macOS App Bundle (Recommended)
 
-The recommended way to build NanoStats is using the included [`build_app.sh`](file:///Users/guru/Desktop/Github/AI-Coding/NanoStats/build_app.sh) script. This script compiles all Swift sources with optimizations, creates the `NanoStats.app` bundle, generates the proper `Info.plist` (configuring `LSUIElement` so the app runs purely in the menu bar without a Dock icon), and converts `assets/app-icon.png` into `AppIcon.icns`.
+The recommended way to build NanoStats is using the included [`build_app.sh`](build_app.sh) script. This script compiles all Swift sources with optimizations, creates the `NanoStats.app` bundle, generates the proper `Info.plist` (configuring `LSUIElement` so the app runs purely in the menu bar without a Dock icon), and converts `assets/app-icon.png` into `AppIcon.icns`.
 
 ### Steps:
 
@@ -70,7 +70,7 @@ This will produce `NanoStats.dmg` in your project directory.
 
 ## 3. Building with Swift Package Manager (Development)
 
-NanoStats includes a [`Package.swift`](file:///Users/guru/Desktop/Github/AI-Coding/NanoStats/Package.swift) for development and quick compilation via Swift Package Manager (SPM).
+NanoStats includes a [`Package.swift`](Package.swift) for development and quick compilation via Swift Package Manager (SPM).
 
 ### Debug Build:
 ```bash
@@ -95,7 +95,7 @@ swift run
 
 ## 4. Continuous Integration / GitHub Actions
 
-Automated builds and release packaging are configured via GitHub Actions in [`.github/workflows/release.yml`](file:///Users/guru/Desktop/Github/AI-Coding/NanoStats/.github/workflows/release.yml).
+Automated builds and release packaging are configured via GitHub Actions in [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 When a git tag matching `v*` (e.g. `v1.0.0`) is pushed, GitHub Actions will:
 1. Run `./build_app.sh` on a `macos-latest` runner.

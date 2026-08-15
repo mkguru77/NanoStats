@@ -6,12 +6,6 @@ public enum UnitMode: String, CaseIterable, Codable {
     case fixedMbps = "Mbps"
 }
 
-public enum DisplayLayout: String, CaseIterable, Codable {
-    case stacked = "Stacked (Upload & Download)"
-    case downloadOnly = "Download Only"
-    case uploadOnly = "Upload Only"
-}
-
 public class SpeedFormatter {
     public static func formatSpeed(_ bytesPerSec: Double, unitMode: UnitMode) -> String {
         switch unitMode {
