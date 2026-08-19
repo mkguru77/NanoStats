@@ -22,8 +22,10 @@ Rendering: `IconProvider.renderMetricsImage` draws stacked metric blocks;
 UI: `ReorderPanel` (drag-reorder), menu actions in `StatusBarController`.
 
 ## Gotchas
-- **Temperature is ESTIMATED from `ProcessInfo.thermalState`, not measured**
-  (Nominal=42, Fair=58, Serious=75, Critical=92 °C).
+- **Temperature is read from real die sensors on Apple Silicon** via the private
+  `IOHIDEventSystemClient` API (no root needed); falls back to an ESTIMATE from
+  `ProcessInfo.thermalState` when sensors are unavailable (Nominal=42, Fair=58,
+  Serious=75, Critical=92 °C).
 - Sampling runs on a private serial queue in `StatusBarController`;
   keep monitor state off the main thread.
 - Network `auto` mode sums all `en*/utun*` interfaces;

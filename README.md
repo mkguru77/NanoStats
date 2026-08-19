@@ -70,7 +70,7 @@ Sources/NanoStats/
 | CPU Usage     | `host_statistics64` (`HOST_CPU_LOAD_INFO`)          |
 | GPU Usage     | `IOKit` (`IOAccelerator` → `PerformanceStatistics`) |
 | RAM Usage     | `host_statistics64` (`HOST_VM_INFO64`)              |
-| Temperature   | `ProcessInfo.thermalState`                          |
+| Temperature   | `IOHIDEventSystemClient` die sensors (Apple Silicon); `ProcessInfo.thermalState` fallback |
 
 ## License
 
