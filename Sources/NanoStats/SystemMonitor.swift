@@ -18,6 +18,10 @@ public class SystemMonitor {
     private var lastCpuTotal: UInt64 = 0
     private var isFirstCpuSample = true
     
+    // Cached IOHIDEventSystemClient for real die-temperature reads (Apple Silicon)
+    private var hidClient: CFTypeRef?
+    private var hidSymbols: HIDSymbols?
+    
     public init() {}
     
     public func poll() -> SystemSample {
@@ -158,26 +162,112 @@ public class SystemMonitor {
     private func pollThermal() -> (temperatureCelsius: Double, thermalStateName: String) {
         let state = ProcessInfo.processInfo.thermalState
         let stateName: String
-        let estimatedTemp: Double
         
         switch state {
         case .nominal:
             stateName = "Nominal"
-            estimatedTemp = 42.0
         case .fair:
             stateName = "Fair"
-            estimatedTemp = 58.0
         case .serious:
             stateName = "Serious"
-            estimatedTemp = 75.0
         case .critical:
             stateName = "Critical"
-            estimatedTemp = 92.0
         @unknown default:
             stateName = "Normal"
-            estimatedTemp = 45.0
         }
         
-        return (estimatedTemp, stateName)
+        // Prefer a real die-temperature reading on Apple Silicon; fall back to
+        // an estimate from the thermal state when the sensor is unavailable.
+        let temp = pollDieTemperature() ?? estimatedTemperature(for: state)
+        return (temp, stateName)
+    }
+    
+    private func estimatedTemperature(for state: ProcessInfo.ThermalState) -> Double {
+        switch state {
+        case .nominal: return 42.0
+        case .fair: return 58.0
+        case .serious: return 75.0
+        case .critical: return 92.0
+        @unknown default: return 45.0
+        }
+    }
+    
+    // MARK: - Real Die Temperature (IOHIDEventSystemClient, Apple Silicon)
+    //
+    // Apple Silicon exposes die-temperature sensors through the private
+    // IOHIDEventSystemClient API (the same source `powermetrics` uses).
+    // Symbols are resolved at runtime via dlopen/dlsym so the app still
+    // builds and runs on Intel Macs and older macOS versions.
+    private struct HIDSymbols {
+        let create: @convention(c) (CFAllocator?) -> CFTypeRef?
+        let setMatching: @convention(c) (CFTypeRef?, CFDictionary?) -> Void
+        let copyServices: @convention(c) (CFTypeRef?) -> CFArray?
+        let copyEvent: @convention(c) (CFTypeRef?, Int64, Int32, Int64) -> CFTypeRef?
+        let getFloatValue: @convention(c) (CFTypeRef?, UInt32) -> Double
+        let copyProperty: @convention(c) (CFTypeRef?, CFString?) -> CFTypeRef?
+    }
+    
+    private func loadHIDSymbols() -> HIDSymbols? {
+        if let cached = hidSymbols { return cached }
+        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY) else {
+            return nil
+        }
+        typealias CreateFn = @convention(c) (CFAllocator?) -> CFTypeRef?
+        typealias SetMatchingFn = @convention(c) (CFTypeRef?, CFDictionary?) -> Void
+        typealias CopyServicesFn = @convention(c) (CFTypeRef?) -> CFArray?
+        typealias CopyEventFn = @convention(c) (CFTypeRef?, Int64, Int32, Int64) -> CFTypeRef?
+        typealias GetFloatValueFn = @convention(c) (CFTypeRef?, UInt32) -> Double
+        typealias CopyPropertyFn = @convention(c) (CFTypeRef?, CFString?) -> CFTypeRef?
+        
+        guard let createPtr = dlsym(handle, "IOHIDEventSystemClientCreate"),
+              let setMatchingPtr = dlsym(handle, "IOHIDEventSystemClientSetMatching"),
+              let copyServicesPtr = dlsym(handle, "IOHIDEventSystemClientCopyServices"),
+              let copyEventPtr = dlsym(handle, "IOHIDServiceClientCopyEvent"),
+              let getFloatValuePtr = dlsym(handle, "IOHIDEventGetFloatValue"),
+              let copyPropertyPtr = dlsym(handle, "IOHIDServiceClientCopyProperty") else {
+            return nil
+        }
+        let symbols = HIDSymbols(
+            create: unsafeBitCast(createPtr, to: CreateFn.self),
+            setMatching: unsafeBitCast(setMatchingPtr, to: SetMatchingFn.self),
+            copyServices: unsafeBitCast(copyServicesPtr, to: CopyServicesFn.self),
+            copyEvent: unsafeBitCast(copyEventPtr, to: CopyEventFn.self),
+            getFloatValue: unsafeBitCast(getFloatValuePtr, to: GetFloatValueFn.self),
+            copyProperty: unsafeBitCast(copyPropertyPtr, to: CopyPropertyFn.self)
+        )
+        hidSymbols = symbols
+        return symbols
+    }
+    
+    private func pollDieTemperature() -> Double? {
+        guard let symbols = loadHIDSymbols() else { return nil }
+        
+        let client: CFTypeRef
+        if let existing = hidClient {
+            client = existing
+        } else {
+            guard let created = symbols.create(kCFAllocatorDefault) else { return nil }
+            hidClient = created
+            client = created
+        }
+        
+        // Match the Apple ARM IO device temperature services (page 0xff00, usage 5).
+        let matching: CFDictionary = ["PrimaryUsagePage": 0xff00, "PrimaryUsage": 5] as CFDictionary
+        symbols.setMatching(client, matching)
+        
+        guard let services = symbols.copyServices(client) as? [CFTypeRef] else { return nil }
+        
+        var maxTemp: Double?
+        for service in services {
+            guard let event = symbols.copyEvent(service, 15, 0, 0) else { continue }
+            let value = symbols.getFloatValue(event, UInt32(15 << 16))
+            // Keep only plausible die temperatures; ignore uninitialized sensors
+            // (some report -22) and non-die sensors like battery or NAND.
+            guard value > 0, value < 150 else { continue }
+            guard let name = symbols.copyProperty(service, "Product" as CFString) as? String,
+                  name.contains("tdie") else { continue }
+            maxTemp = max(maxTemp ?? 0, value)
+        }
+        return maxTemp
     }
 }
